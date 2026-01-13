@@ -4,73 +4,109 @@
 <meta charset="UTF-8">
 <title>Gemeinsamer Kalender</title>
 <style>
-  body { font-family: sans-serif; }
-  table { border-collapse: collapse; width: 100%; }
-  td { border: 1px solid #ccc; width: 40px; height: 40px; text-align: center; vertical-align: middle; cursor: pointer; }
+  body { font-family: sans-serif; margin: 20px; }
+  table { border-collapse: collapse; margin-bottom: 30px; }
+  td, th { border: 1px solid #ccc; width: 40px; height: 40px; text-align: center; vertical-align: middle; cursor: pointer; }
+  caption { font-weight: bold; margin-bottom: 10px; font-size: 1.2em; }
   .frei { background-color: white; }
   .feiertag { background-color: #ddd; }
 </style>
 </head>
 <body>
+
 <h1>Gemeinsamer Kalender</h1>
+
 <label>Teilnehmer: 
   <select id="teilnehmer">
-    <option value="person1" style="color:red;">Arne</option>
-    <option value="person2" style="color:blue;">Malte</option>
-    <option value="person3" style="color:green;">Roman</option>
-    <option value="person4" style="color:orange;">Sascha</option>
-    <option value="person5" style="color:purple;">Seb</option>
+    <option value="person1">Arne</option>
+    <option value="person2">Malte</option>
+    <option value="person3">Roman</option>
+    <option value="person4">Sascha</option>
+    <option value="person5">Seb</option>
   </select>
 </label>
+
 <div id="kalender"></div>
 
 <script>
+console.log('Script geladen');
 const API_URL = window.location.origin + '/api';
-const colors = {person1:'red', person2:'blue', person3:'green', person4:'orange', person5:'purple'};
-const feiertage = {
-  "NRW":["2026-05-01","2026-10-03"],
-  "RLP":["2026-05-01"],
-  "HH":["2026-05-01"],
-  "BE":["2026-05-01"]
+const colors = {
+  person1:'red',
+  person2:'blue',
+  person3:'green',
+  person4:'orange',
+  person5:'purple'
 };
+
+// Feiertage für 2026
+const feiertage = {
+  "NRW":["2026-01-01","2026-05-01","2026-10-03"],
+  "RLP":["2026-01-01","2026-05-01","2026-10-03"],
+  "HH":["2026-01-01","2026-05-01","2026-10-03"],
+  "BE":["2026-01-01","2026-05-01","2026-10-03"]
+};
+
 const startMonth = 4; // April
 const endMonth = 10;  // Oktober
 const year = 2026;
 
 let markedData = {};
 
+// Lade Daten vom Backend
 async function loadData() {
-  const res = await fetch(API_URL);
-  markedData = await res.json();
+  try {
+    const res = await fetch(API_URL + '/calendar');
+    markedData = await res.json();
+  } catch(e) {
+    console.error("Fehler beim Laden der Daten:", e);
+    markedData = {};
+  }
   renderKalender();
 }
 
+// Kalender rendern
 function renderKalender() {
   const container = document.getElementById('kalender');
   container.innerHTML = '';
+
   for(let m=startMonth; m<=endMonth; m++) {
-    const firstDay = new Date(year,m-1,1);
-    const lastDay = new Date(year,m,0);
+    const firstDay = new Date(year, m-1, 1);
+    const lastDay = new Date(year, m, 0);
+
     const table = document.createElement('table');
+
     const caption = document.createElement('caption');
     caption.textContent = firstDay.toLocaleString('de-DE',{month:'long', year:'numeric'});
     table.appendChild(caption);
-    
-    // Woche 1..6
+
+    // Header für Wochentage
+    const header = document.createElement('tr');
+    ["So","Mo","Di","Mi","Do","Fr","Sa"].forEach(d => {
+      const th = document.createElement('th');
+      th.textContent = d;
+      header.appendChild(th);
+    });
+    table.appendChild(header);
+
     let tr = document.createElement('tr');
-    for(let d=0; d<firstDay.getDay(); d++) tr.appendChild(document.createElement('td'));
-    for(let day=1; day<=lastDay.getDate(); day++){
+
+    // leere Zellen vor dem 1. Tag
+    let weekday = firstDay.getDay();
+    for(let i=0;i<weekday;i++) tr.appendChild(document.createElement('td'));
+
+    for(let day=1; day<=lastDay.getDate(); day++) {
       const td = document.createElement('td');
       const dateStr = `${year}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
       td.textContent = day;
       td.className = 'frei';
-      
-      // Feiertag markieren
+
+      // Feiertag prüfen
       for(let land in feiertage){
         if(feiertage[land].includes(dateStr)) td.className = 'feiertag';
       }
 
-      // Markierung aus Daten
+      // Markierungen aus Daten
       for(let person in markedData){
         if(markedData[person] && markedData[person].includes(dateStr)){
           td.style.backgroundColor = colors[person];
@@ -82,17 +118,19 @@ function renderKalender() {
         if(!markedData[person]) markedData[person]=[];
         if(markedData[person].includes(dateStr)){
           markedData[person] = markedData[person].filter(d=>d!==dateStr);
+          td.style.backgroundColor = 'white';
         } else {
           markedData[person].push(dateStr);
+          td.style.backgroundColor = colors[person];
         }
-        td.style.backgroundColor = markedData[person].includes(dateStr)? colors[person] : 'white';
         saveData();
       };
 
       tr.appendChild(td);
-      if((day + firstDay.getDay())%7===0){
+      weekday++;
+      if(weekday % 7 === 0){
         table.appendChild(tr);
-        tr=document.createElement('tr');
+        tr = document.createElement('tr');
       }
     }
     table.appendChild(tr);
@@ -100,15 +138,22 @@ function renderKalender() {
   }
 }
 
+// Daten an Backend speichern
 async function saveData(){
-  await fetch(API_URL, {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(markedData)
-  });
+  try {
+    await fetch(API_URL + '/calendar', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(markedData)
+    });
+  } catch(e) {
+    console.error("Fehler beim Speichern:", e);
+  }
 }
 
-loadData();
+// Script nach DOM Laden starten
+window.onload = loadData;
+
 </script>
 </body>
 </html>
