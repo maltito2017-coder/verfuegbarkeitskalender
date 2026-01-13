@@ -1,43 +1,45 @@
 ﻿const express = require('express');
-const fs = require('fs');
 const cors = require('cors');
-const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.static(__dirname));
 
-// === Dateien static serven ===
-app.use(express.static(path.join(__dirname)));
+/* 🔑 Supabase Config */
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
 
-// === Data Datei ===
-const FILE = 'data.json';
-if (!fs.existsSync(FILE)) fs.writeFileSync(FILE, JSON.stringify({}));
+/* ---------- API ---------- */
 
-// === Root Route: Kalender ausliefern ===
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+app.get('/api/calendar', async (req, res) => {
+  const { data, error } = await supabase
+    .from('calendar')
+    .select('data')
+    .eq('id', 'global')
+    .single();
+
+  if (error) return res.status(500).json({});
+  res.json(data.data || {});
 });
 
-// === API: Kalenderdaten holen ===
-app.get('/api/calendar', (req, res) => {
-  let data = {};
-  try {
-    data = JSON.parse(fs.readFileSync(FILE));
-  } catch (e) {
-    console.error('data.json fehlerhaft, wird zurückgesetzt');
-    data = {};
-    fs.writeFileSync(FILE, JSON.stringify(data));
-  }
-  res.json(data);
-});
+app.post('/api/calendar', async (req, res) => {
+  const { error } = await supabase
+    .from('calendar')
+    .update({ data: req.body })
+    .eq('id', 'global');
 
-// === API: Kalenderdaten speichern ===
-app.post('/api/calendar', (req, res) => {
-  fs.writeFileSync(FILE, JSON.stringify(req.body, null, 2));
+  if (error) return res.status(500).json({ error });
   res.json({ status: 'ok' });
 });
 
-// === Render Port (0.0.0.0 für öffentlich erreichbar) ===
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log('Server läuft auf Port', PORT));
+/* ---------- Root ---------- */
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/index.html');
+});
+
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => console.log('Server läuft auf', PORT));
