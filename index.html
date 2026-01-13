@@ -15,7 +15,11 @@
   caption { font-weight: bold; margin-bottom: 10px; font-size: 1.2em; }
   .frei { background-color: white; }
   .feiertag { background-color: #ed91e7; }
-  #legende span { margin-right: 15px; font-weight: bold; }
+  #teilnehmer {
+  font-size: 1.5em; /* Schriftgröße vergrößern */
+  padding: 4px 8px; /* optional: etwas Innenabstand für bessere Optik */
+}
+  #legende span { margin-right: 15px; font-weight: bold; font-size: 1.5em; }
 </style>
 </head>
 <body>
@@ -31,6 +35,7 @@
     <option value="person5">Seb</option>
   </select>
 </label>
+<br>
 
 <!-- Legende neben Dropdown -->
 <div id="legende">
@@ -40,6 +45,7 @@
   <span style="color:orange;">■ Sascha</span>
   <span style="color:purple;">■ Seb</span>
 </div>
+<br>
 
 <div id="kalender"></div>
 
