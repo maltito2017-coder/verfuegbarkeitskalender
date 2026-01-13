@@ -2,106 +2,113 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Verfügbarkeitskalender</title>
+<title>Gemeinsamer Kalender</title>
 <style>
-body { font-family: sans-serif; }
-.calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-.day { border: 1px solid #ccc; height: 70px; position: relative; cursor: pointer; }
-.day span { position: absolute; top: 2px; right: 4px; font-size: 12px; }
-.color { position:absolute; bottom:2px; left:2px; right:2px; height:6px; margin-top:2px; }
-.legend div { margin:4px 0; }
-.holiday { background:#eee; }
+  body { font-family: sans-serif; }
+  table { border-collapse: collapse; width: 100%; }
+  td { border: 1px solid #ccc; width: 40px; height: 40px; text-align: center; vertical-align: middle; cursor: pointer; }
+  .frei { background-color: white; }
+  .feiertag { background-color: #ddd; }
 </style>
 </head>
 <body>
-
-
-<h2>Verfügbarkeitskalender (April–Oktober 2026)</h2>
-
-
-<div class="legend">
-<div style="color:#e63946">■ Arne</div>
-<div style="color:#457b9d">■ Malte</div>
-<div style="color:#2a9d8f">■ Roman</div>
-<div style="color:#f4a261">■ Sascha</div>
-<div style="color:#9b5de5">■ Seb</div>
-<hr>
-<div>⬜ Feiertag (NRW, RLP, HH, Berlin)</div>
-</div>
-
-
-<div id="calendar"></div>
-
+<h1>Gemeinsamer Kalender</h1>
+<label>Teilnehmer: 
+  <select id="teilnehmer">
+    <option value="person1" style="color:red;">Arne</option>
+    <option value="person2" style="color:blue;">Malte</option>
+    <option value="person3" style="color:green;">Roman</option>
+    <option value="person4" style="color:orange;">Sascha</option>
+    <option value="person5" style="color:purple;">Seb</option>
+  </select>
+</label>
+<div id="kalender"></div>
 
 <script>
-const API_URL = 'https://DEIN-PROJEKT.repl.co/api';
-const colors = ['#e63946','#457b9d','#2a9d8f','#f4a261','#9b5de5'];
-let activeColor = colors[0];
-let marked = {};
-
-
-const holidays = [
-'2026-04-03','2026-04-06','2026-05-01','2026-05-14','2026-05-25',
-'2026-06-04','2026-10-03'
-];
-
-
-async function load() {
-const r = await fetch(`${API_URL}/calendar`);
-marked = await r.json();
-draw();
-}
-
-
-async function save() {
-await fetch(`${API_URL}/calendar`,{
-method:'POST', headers:{'Content-Type':'application/json'},
-body: JSON.stringify(marked)
-});
-}
-
-
-function draw() {
-const cal = document.getElementById('calendar');
-cal.innerHTML='';
-
-
-for(let m=3;m<=9;m++){
-const first = new Date(2026,m,1);
-const last = new Date(2026,m+1,0);
-cal.insertAdjacentHTML('beforeend',`<h3>${first.toLocaleString('de',{month:'long'})}</h3>`);
-const grid = document.createElement('div');
-grid.className='calendar';
-
-
-for(let d=1; d<=last.getDate(); d++){
-const date = `2026-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-const div = document.createElement('div');
-div.className='day';
-if(holidays.includes(date)) div.classList.add('holiday');
-div.innerHTML=`<span>${d}</span>`;
-
-
-(marked[date]||[]).forEach(c=>{
-const bar=document.createElement('div');
-bar.className='color'; bar.style.background=c;
-div.appendChild(bar);
-});
-
-
-div.onclick=()=>{
-marked[date]=marked[date]||[];
-if(!marked[date].includes(activeColor)) marked[date].push(activeColor);
-save(); draw();
+const API_URL = window.location.origin + '/api';
+const colors = {person1:'red', person2:'blue', person3:'green', person4:'orange', person5:'purple'};
+const feiertage = {
+  "NRW":["2026-05-01","2026-10-03"],
+  "RLP":["2026-05-01"],
+  "HH":["2026-05-01"],
+  "BE":["2026-05-01"]
 };
-grid.appendChild(div);
-}
-cal.appendChild(grid);
-}
+const startMonth = 4; // April
+const endMonth = 10;  // Oktober
+const year = 2026;
+
+let markedData = {};
+
+async function loadData() {
+  const res = await fetch(API_URL);
+  markedData = await res.json();
+  renderKalender();
 }
 
+function renderKalender() {
+  const container = document.getElementById('kalender');
+  container.innerHTML = '';
+  for(let m=startMonth; m<=endMonth; m++) {
+    const firstDay = new Date(year,m-1,1);
+    const lastDay = new Date(year,m,0);
+    const table = document.createElement('table');
+    const caption = document.createElement('caption');
+    caption.textContent = firstDay.toLocaleString('de-DE',{month:'long', year:'numeric'});
+    table.appendChild(caption);
+    
+    // Woche 1..6
+    let tr = document.createElement('tr');
+    for(let d=0; d<firstDay.getDay(); d++) tr.appendChild(document.createElement('td'));
+    for(let day=1; day<=lastDay.getDate(); day++){
+      const td = document.createElement('td');
+      const dateStr = `${year}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+      td.textContent = day;
+      td.className = 'frei';
+      
+      // Feiertag markieren
+      for(let land in feiertage){
+        if(feiertage[land].includes(dateStr)) td.className = 'feiertag';
+      }
 
-load();
+      // Markierung aus Daten
+      for(let person in markedData){
+        if(markedData[person] && markedData[person].includes(dateStr)){
+          td.style.backgroundColor = colors[person];
+        }
+      }
+
+      td.onclick = () => {
+        const person = document.getElementById('teilnehmer').value;
+        if(!markedData[person]) markedData[person]=[];
+        if(markedData[person].includes(dateStr)){
+          markedData[person] = markedData[person].filter(d=>d!==dateStr);
+        } else {
+          markedData[person].push(dateStr);
+        }
+        td.style.backgroundColor = markedData[person].includes(dateStr)? colors[person] : 'white';
+        saveData();
+      };
+
+      tr.appendChild(td);
+      if((day + firstDay.getDay())%7===0){
+        table.appendChild(tr);
+        tr=document.createElement('tr');
+      }
+    }
+    table.appendChild(tr);
+    container.appendChild(table);
+  }
+}
+
+async function saveData(){
+  await fetch(API_URL, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(markedData)
+  });
+}
+
+loadData();
 </script>
 </body>
 </html>
