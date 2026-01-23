@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <title>Gemeinsamer Kalender</title>
+<br>
+<h1>Gemeinsamer Kalender</h1>
 
 <style>
   body { font-family: sans-serif; margin: 20px; }
@@ -61,26 +63,30 @@
 
 <body>
 
-<h1>Gemeinsamer Kalender</h1>
+<h2>Zellen markieren, an denen du NICHT kannst!</h2>
 
 <label>Teilnehmer:
   <select id="teilnehmer">
-    <option value="person1">Arne</option>
-    <option value="person2">Malte</option>
-    <option value="person3">Roman</option>
-    <option value="person4">Sascha</option>
-    <option value="person5">Seb</option>
+    <option value="person1">Alex</option>
+    <option value="person2">Arne</option>
+    <option value="person3">Felix</option>
+    <option value="person4">Jean</option>
+    <option value="person5">Moritz</option>
+	<option value="person6">Sepp</option>
+	<option value="person7">Tim</option>
   </select>
 </label>
 
 <br><br>
 
 <div id="legende">
-  <span style="color:red;">■ Arne</span>
-  <span style="color:blue;">■ Malte</span>
-  <span style="color:green;">■ Roman</span>
-  <span style="color:orange;">■ Sascha</span>
-  <span style="color:purple;">■ Seb</span>
+  <span style="color:red;">■ Alex</span>
+  <span style="color:blue;">■ Arne</span>
+  <span style="color:green;">■ Felix</span>
+  <span style="color:orange;">■ Jean</span>
+  <span style="color:purple;">■ Moritz</span>
+  <span style="color:brown;">■ Sepp</span>
+  <span style="color:aqua;">■ Tim</span>
 </div>
 
 <br>
@@ -95,19 +101,21 @@ const colors = {
   person2: 'blue',
   person3: 'green',
   person4: 'orange',
-  person5: 'purple'
+  person5: 'purple',
+  person6: 'brown',
+  person7: 'aqua'
 };
 
 /* Feiertage (bleiben logisch gleich, nur Darstellung geändert) */
 const feiertage = {
   NRW:["2026-01-01","2026-05-01","2026-10-03"],
-  RLP:["2026-01-01","2026-04-03","2026-05-01","2026-04-06","2026-05-14","2026-05-25","2026-06-04","2026-10-03"],
+  RLP:["2026-01-01","2026-04-03","2026-05-01","2026-04-06","2026-05-14","2026-05-25","2026-06-04","2026-10-03","2026-11-01"],
   HH:["2026-01-01","2026-05-01","2026-10-03"],
   BE:["2026-01-01","2026-05-01","2026-10-03"]
 };
 
 const startMonth = 4; // April
-const endMonth = 10;  // Oktober
+const endMonth = 11;  // November
 const year = 2026;
 
 let markedData = {};
